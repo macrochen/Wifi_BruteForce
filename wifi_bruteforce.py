@@ -21,11 +21,22 @@ class WifiBruteforcer:
 		self.target_ssid = target_ssid
 		self.password_file = password_file
 		self.checkpoint_file = 'checkpoint.json'
+		
+		# 初始化断点文件
+		if not os.path.exists(self.checkpoint_file):
+			with open(self.checkpoint_file, 'w') as f:
+				json.dump({
+					'ssid': '',
+					'tried': 0,
+					'total': 0
+				}, f)
+		
 		if update_wordlist:
 			self.update_password_list()
 		self.passwords = self.load_passwords()
 		
 	def update_password_list(self):
+		
 		"""从网络更新密码字典"""
 		print("[*] 正在从GitHub下载密码字典...")
 		try:
@@ -334,13 +345,18 @@ class WifiBruteforcer:
 		
 	def save_checkpoint(self, network, tried_count):
 		"""保存断点信息"""
-		checkpoint = {
-			'ssid': network['ssid'],
-			'tried': tried_count,
-			'total': len(self.passwords)
-		}
-		with open(self.checkpoint_file, 'w') as f:
-			json.dump(checkpoint, f)
+		try:
+			checkpoint = {
+				'ssid': network['ssid'],
+				'tried': tried_count,
+				'total': len(self.passwords)
+			}
+			with open(self.checkpoint_file, 'w') as f:
+				json.dump(checkpoint, f)
+		except Exception as e:
+			print(f"[-] 保存断点失败: {str(e)}")
+			# 继续执行，不影响主程序
+			pass
 			
 	def clear_checkpoint(self):
 		"""清除断点信息"""
