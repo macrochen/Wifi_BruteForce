@@ -17,36 +17,44 @@
 ## 📦 安装
 
 1. 克隆仓库：
-bash
+```bash
 git clone https://github.com/yourusername/wifi-bruteforce.git
 cd wifi-bruteforce
+```
 
 2. 安装依赖：
-bash
+```bash
 pip install -r requirements.txt
+```
 
 ## 🚀 使用方法
 
 ### 基本命令
 
 1. 列出可用的WiFi网络：
-bash
+```bash
 sudo python wifi_bruteforce.py -l
-
+```
 
 2. 更新密码字典：
-bash
+```bash
 sudo python wifi_bruteforce.py -u
+```
 
 3. 破解指定的WiFi网络：
-bash
+```bash
 sudo python wifi_bruteforce.py -s "WiFi名称"
-
+```
 
 4. 使用自定义密码文件：
-bash
+```bash
  sudo python wifi_bruteforce.py -s "WiFi名称" -p /path/to/your/passwords.txt
+```
 
+5. 优化密码字典：
+```bash
+python password_optimizer.py wordlists/passwords.txt -o wordlists/optimized_passwords.txt
+```
 
 5. 交互式选择并破解：
 bash
@@ -60,6 +68,7 @@ sudo python wifi_bruteforce.py
 - `-u, --update`: 更新密码字典
 - `-s SSID, --ssid SSID`: 指定要破解的WiFi名称
 - `-l, --list`: 列出可用的WiFi网络
+- `-p FILE, --password-file FILE`: 指定自定义的密码字典文件
 
 ## 🛠 工作原理
 
@@ -86,6 +95,19 @@ sudo python wifi_bruteforce.py
    - 详细的错误报告
    - 避免重复尝试
 
+5. **密码优化**
+   - 自动过滤无效的WiFi密码
+   - 去除重复密码
+   - 按长度排序（优先尝试短密码）
+   - 验证密码格式（长度、字符集等）
+   - 生成优化后的密码字典
+
+6. **断点续传**
+   - 自动保存破解进度
+   - 支持中断后继续破解
+   - 记录已尝试的密码数量
+   - 智能恢复上次位置
+
 ## 📝 注意事项
 
 1. **性能考虑**
@@ -94,6 +116,7 @@ sudo python wifi_bruteforce.py
    - 建议先使用小型字典测试
    - 优化了连接验证流程，减少等待时间
    - 使用快速失败机制，提高尝试速度
+   - 支持断点续传，可随时中断恢复
    - 建议根据网络条件调整连接超时时间
 
 2. **兼容性**
